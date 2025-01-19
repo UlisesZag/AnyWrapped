@@ -1,2 +1,9 @@
 __pycache__/
 stats.db
+AIMP.bat
+.venv/
+.vscode/
+*.pyc
+*.swp
+*.log
+*.egg-info

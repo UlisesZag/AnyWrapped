@@ -19,15 +19,15 @@ if __name__ == "__main__":
     dbmodel.connect_db()
 
     #Testeo de la DB
-    print("DATABASE:")
-    for entry in dbmodel.get_songs_entries():
-        print(entry)
-    
-    print("ARTISTS - REPRODUCTIONS:")
-    for entry in dbmodel.get_artists():
-        print(entry, "-", dbmodel.get_artist_reproductions(entry))
+    print("===== [TOP MOST PLAYED ARTISTS] =====")
+    for i, entry in enumerate(dbmodel.get_most_played_artists(removeBlank=True)):
+        print(i+1, entry[0], "- Times played:", entry[1])
 
-    print(f"Total Reproductions: {dbmodel.get_total_reproductions()}")
+    print("\n=====  [TOP MOST PLAYED SONGS]  =====")
+    for i, entry in enumerate(dbmodel.get_most_played_songs(removeBlank=True)):
+        print(i+1, entry[2], "-", entry[3], "-", entry[4], "- Times played:", entry[5])
+
+    print(f"\nTotal Reproductions: {dbmodel.get_total_reproductions()}\n")
 
     logger.set_controller(dbmodel)
 

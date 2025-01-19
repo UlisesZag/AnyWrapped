@@ -45,7 +45,8 @@ class AIMPLogger():
             track_info = {}
 
             if playback_state == pyaimp.PlayBackState.Stopped:
-                print("No track being played")
+                #print("No track being played")
+                pass
             else: 
                 old_track_info = track_info
                 track_info = client.get_current_track_info()
@@ -54,9 +55,8 @@ class AIMPLogger():
                 str_state = "[Paused]" if playback_state == pyaimp.PlayBackState.Paused else "[Playing]"
 
                 #Acaba de empezar?
-                just_started = client.get_player_position() <= SLEEP_INTERVAL * 1100 and playback_state == pyaimp.PlayBackState.Playing
+                just_started = client.get_player_position() <= SLEEP_INTERVAL * 1200 and playback_state == pyaimp.PlayBackState.Playing
                 song_changed = old_track_info == track_info
-
 
                 #Aca haria toda la parte del registro. 
                 if just_started or song_changed:
