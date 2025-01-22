@@ -7,3 +7,6 @@ AIMP.bat
 *.swp
 *.log
 *.egg-info
+*.spec
+*.exe
+build/

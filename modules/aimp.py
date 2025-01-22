@@ -7,8 +7,8 @@ class AIMPLogger():
     def __init__(self):
         pass
 
-    def set_controller(self, dbcontroller):
-        self.dbmodel = dbcontroller
+    def set_controller(self, controller):
+        self.controller = controller
     
     #Funcion que espera una instancia de 
     def wait_aimp(self):
@@ -25,11 +25,11 @@ class AIMPLogger():
         return client
 
     def aimp_loop(self):
-        print("Searching AIMP instance...")
+        self.controller.print("Searching AIMP instance...")
 
         client = self.wait_aimp()
 
-        print(f"Found: AIMP {client.get_version()[0]}")
+        self.controller.print(f"Found: AIMP {client.get_version()[0]}")
 
         #Loop principal
         while True:
@@ -60,7 +60,7 @@ class AIMPLogger():
 
                 #Aca haria toda la parte del registro. 
                 if just_started or song_changed:
-                    print(f"{str_state} { track_info["artist"] } - { track_info["album"] } - { track_info["title"] }")
-                    self.dbmodel.add_song_played(track_info["title"],track_info["album"],track_info["artist"])
+                    self.controller.print(f"{str_state} { track_info["artist"] } - { track_info["album"] } - { track_info["title"] }")
+                    self.controller.add_song_played(track_info["title"],track_info["album"],track_info["artist"])
         
-        print("AIMP Apagado")
+        self.controller.print("AIMP Apagado")

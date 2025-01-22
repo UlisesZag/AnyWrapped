@@ -1,12 +1,21 @@
 import sqlite3
 import time
 
+
+'''
+Modelo de la base de datos
+'''
 class DatabaseModel():
     def __init__(self):
+        self.controller = None
+
         self.dbcon = None
         self.dbcur = None
 
         self.global_stats = {}
+    
+    def set_controller(self, controller):
+        self.controller = controller
 
     #Se conecta a la base de datos
     def connect_db(self):
@@ -15,7 +24,7 @@ class DatabaseModel():
 
         self.create_db()
 
-    #Base de datos vacia? La crea
+    #Crea la base de datos si es que no existe
     def create_db(self):
         self.dbcur.execute('''
                            CREATE TABLE IF NOT EXISTS Songs(
@@ -39,6 +48,9 @@ class DatabaseModel():
 
         self.dbcon.commit() 
     
+    #Agrega una cancion a la DB
+    #Primero, agrega la cancion a la tabla Songs, o actualiza la cancion y le suma 1 a las reproducciones y actualiza el Timestamp
+    #Segundo, agrega la cancion a la tabla Historial con su respectivo Timestamp
     def add_song_played(self, song, album, artist):
         #Le saca las comillas para que SQL no se confunda
         song = song.replace("\"", "").replace("\'", "")
@@ -83,13 +95,29 @@ class DatabaseModel():
 
         self.dbcon.commit()
 
+    def get_song_by_id(self, id):
+        return self.dbcur.execute(f'''
+                                    SELECT * FROM Songs WHERE ID={id};
+                                  ''').fetchone()
+
+    #Devuelve todas las canciones en la DB
     def get_songs_entries(self):
         self.dbcur.execute('''
                             SELECT * FROM Songs
                            ''')
         entries = self.dbcur.fetchall()
         return entries
+    
+    #Devuelve todos los artistas en la DB
+    def get_artists(self):
+        artists = []
+        for entry in self.get_songs_entries():
+            if not entry[2] in artists:
+                artists.append(entry[2])
 
+        return artists
+
+    #Devuelve todas las reproducciones de toda la DB
     def get_total_reproductions(self):
         total_reps = 0
         for entry in self.get_songs_entries():
@@ -97,6 +125,7 @@ class DatabaseModel():
         
         return total_reps
 
+    #Devuelve todas las reproducciones de un artista
     def get_artist_reproductions(self, artist):
         reps = 0
         for entry in self.get_songs_entries():
@@ -105,6 +134,7 @@ class DatabaseModel():
         
         return reps
     
+    #Devuelve todas las reproducciones de un album
     def get_album_reproductions(self, artist, album):
         reps = 0
         for entry in self.get_songs_entries():
@@ -113,6 +143,7 @@ class DatabaseModel():
         
         return reps
     
+    #Devuelve todas las reproducciones de una cancion
     def get_song_reproductions(self, artist, album, title):
         reps = 0
         for entry in self.get_songs_entries():
@@ -121,19 +152,23 @@ class DatabaseModel():
         
         return reps
     
-    def get_artists(self):
-        artists = []
-        for entry in self.get_songs_entries():
-            if not entry[2] in artists:
-                artists.append(entry[2])
-
-        return artists
     
+    
+    '''
+    Obtiene las canciones mas reproducidos
+    limit: devuelve los primeros [limit] mas escuchados
+    removeBlank: saca las canciones sin nombre ("") de la lista
+    '''
     def get_most_played_songs(self, limit = 10, removeBlank = False):
         songs = self.get_songs_entries()
         songs.sort(key=lambda tup: tup[5], reverse=True)
         return songs[0:limit]
 
+    '''
+    Obtiene los artistas mas reproducidos
+    limit: devuelve los primeros [limit] mas escuchados
+    removeBlank: saca los artistas sin nombre ("") de la lista
+    '''
     def get_most_played_artists(self, limit = 10, removeBlank = False):
         artists_reps = []
 
@@ -148,3 +183,19 @@ class DatabaseModel():
         artists_reps.sort(key=lambda tup: tup[1], reverse=True)
         
         return artists_reps[0:limit]
+
+    #Obtiene el historial
+    #La funcion invierte la tabla de la DB para que los mas recientes sean los primeros en la lista
+    #limit: obtiene los primeros [limit] del historial
+    def get_historial(self, limit = 0):
+        list_historial = self.dbcur.execute(f'''
+                            SELECT * FROM Historial;
+                           ''').fetchall()
+        list_historial = list(reversed(list_historial))
+
+        if limit == 0:
+            return list_historial
+        else:
+            return list_historial[0:limit]
+        
+    

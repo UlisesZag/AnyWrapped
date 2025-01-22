@@ -7,28 +7,32 @@ Reproductores soportados:
 AIMP
 '''
 
-import aimp
-import database_model
-
+import modules.aimp as aimp
+import modules.database_model as database_model
+import modules.ui as ui
+import modules.controller as controller
+import pywintypes
+from tkinter.messagebox import showerror
 
 #La idea es que haya un objeto de logger por software reproductor, que se conecte al modelo de DB 
 if __name__ == "__main__":
-    logger = aimp.AIMPLogger()
-    
-    dbmodel = database_model.DatabaseModel()
-    dbmodel.connect_db()
 
-    #Testeo de la DB
-    print("===== [TOP MOST PLAYED ARTISTS] =====")
-    for i, entry in enumerate(dbmodel.get_most_played_artists(removeBlank=True)):
-        print(i+1, entry[0], "- Times played:", entry[1])
+    try:
+        app_controller = controller.AppController()
+        logger = aimp.AIMPLogger()
+        dbmodel = database_model.DatabaseModel()
+        dbmodel.connect_db()
+        #gui = ui.GuiApp()
+        gui = ui.CliApp()
 
-    print("\n=====  [TOP MOST PLAYED SONGS]  =====")
-    for i, entry in enumerate(dbmodel.get_most_played_songs(removeBlank=True)):
-        print(i+1, entry[2], "-", entry[3], "-", entry[4], "- Times played:", entry[5])
+        app_controller.set_dbmodel(dbmodel)
+        app_controller.set_view(gui)
+        app_controller.set_logger(logger)
 
-    print(f"\nTotal Reproductions: {dbmodel.get_total_reproductions()}\n")
+        logger.set_controller(app_controller)
+        dbmodel.set_controller(app_controller)
+        gui.set_controller(app_controller)
 
-    logger.set_controller(dbmodel)
-
-    logger.aimp_loop()
+        app_controller.start()
+    except PermissionError or pywintypes.error:
+        showerror("Permission Error", "Script was executed without enough permissions. Try running as an administrator.")
