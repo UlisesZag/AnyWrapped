@@ -1,10 +1,10 @@
 import sqlite3
 import time
 
-
 '''
 Modelo de la base de datos
 '''
+
 class DatabaseModel():
     def __init__(self):
         self.controller = None
@@ -19,10 +19,17 @@ class DatabaseModel():
 
     #Se conecta a la base de datos
     def connect_db(self):
-        self.dbcon = sqlite3.connect("stats.db")
+        #check_same_thread=False es una negreada para no usar semaforos y no poner hilos de mass
+        #Lo unico que escribe es el hilo del logger 
+        self.dbcon = sqlite3.connect("stats.db", check_same_thread=False) 
         self.dbcur = self.dbcon.cursor()
 
         self.create_db()
+
+    def disconnect_db(self):
+        self.dbcon.close()
+        self.dbcon = None
+        self.dbcur = None
 
     #Crea la base de datos si es que no existe
     def create_db(self):
@@ -52,6 +59,8 @@ class DatabaseModel():
     #Primero, agrega la cancion a la tabla Songs, o actualiza la cancion y le suma 1 a las reproducciones y actualiza el Timestamp
     #Segundo, agrega la cancion a la tabla Historial con su respectivo Timestamp
     def add_song_played(self, song, album, artist):
+        #print("DBMODEL: ADDING PLAYED SONG . . .")
+        self.connect_db()
         #Le saca las comillas para que SQL no se confunda
         song = song.replace("\"", "").replace("\'", "")
         album = album.replace("\"", "").replace("\'", "")
@@ -94,18 +103,25 @@ class DatabaseModel():
             ''')
 
         self.dbcon.commit()
+        self.disconnect_db()
 
     def get_song_by_id(self, id):
-        return self.dbcur.execute(f'''
+        self.connect_db()
+        song = self.dbcur.execute(f'''
                                     SELECT * FROM Songs WHERE ID={id};
                                   ''').fetchone()
+        self.disconnect_db()
+
+        return song
 
     #Devuelve todas las canciones en la DB
     def get_songs_entries(self):
+        self.connect_db()
         self.dbcur.execute('''
                             SELECT * FROM Songs
                            ''')
         entries = self.dbcur.fetchall()
+        self.disconnect_db()
         return entries
     
     #Devuelve todos los artistas en la DB
@@ -152,24 +168,22 @@ class DatabaseModel():
         
         return reps
     
-    
-    
-    '''
-    Obtiene las canciones mas reproducidos
-    limit: devuelve los primeros [limit] mas escuchados
-    removeBlank: saca las canciones sin nombre ("") de la lista
-    '''
     def get_most_played_songs(self, limit = 10, removeBlank = False):
+        '''
+        Obtiene las canciones mas reproducidos
+        limit: devuelve los primeros [limit] mas escuchados
+        removeBlank: saca las canciones sin nombre ("") de la lista
+        '''
         songs = self.get_songs_entries()
         songs.sort(key=lambda tup: tup[5], reverse=True)
         return songs[0:limit]
 
-    '''
-    Obtiene los artistas mas reproducidos
-    limit: devuelve los primeros [limit] mas escuchados
-    removeBlank: saca los artistas sin nombre ("") de la lista
-    '''
     def get_most_played_artists(self, limit = 10, removeBlank = False):
+        '''
+        Obtiene los artistas mas reproducidos
+        limit: devuelve los primeros [limit] mas escuchados
+        removeBlank: saca los artistas sin nombre ("") de la lista
+        '''
         artists_reps = []
 
         for artist in self.get_artists():
@@ -184,18 +198,27 @@ class DatabaseModel():
         
         return artists_reps[0:limit]
 
-    #Obtiene el historial
-    #La funcion invierte la tabla de la DB para que los mas recientes sean los primeros en la lista
-    #limit: obtiene los primeros [limit] del historial
-    def get_historial(self, limit = 0):
+    #Obtiene la tabla del historial
+    def get_historial_table(self, limit = 0):
+        self.connect_db()
         list_historial = self.dbcur.execute(f'''
                             SELECT * FROM Historial;
                            ''').fetchall()
-        list_historial = list(reversed(list_historial))
-
-        if limit == 0:
-            return list_historial
-        else:
-            return list_historial[0:limit]
+        self.disconnect_db()
         
+        return list_historial
+
     
+    #La funcion invierte la tabla de la DB para que los mas recientes sean los primeros en la lista
+    #limit: obtiene los primeros [limit] del historial
+    def get_historial(self, limit = 0):
+        hist = []
+        #Obtiene la tabla, la invierte y luego la corta a limite
+        histlist = list(reversed(self.get_historial_table()))[0:limit]
+
+        #Cada entry tiene un: ROWID, ID de la cancion, Timestamp de vez reproducida
+        for entry in histlist:
+            song = self.get_song_by_id(entry[1])
+            hist.append([song, entry[2]]) #Appendea los datos de SONG + el timestamp del historial
+        
+        return hist
