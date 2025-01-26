@@ -21,7 +21,7 @@ if __name__ == "__main__":
         app_controller = controller.AppController()
         logger = aimp.AIMPLogger()
         dbmodel = database_model.DatabaseModel()
-        gui = ui.CliApp()
+        gui = ui.GuiApp()
 
         app_controller.set_dbmodel(dbmodel)
         app_controller.set_view(gui)

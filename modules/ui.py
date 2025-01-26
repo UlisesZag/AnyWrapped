@@ -14,36 +14,87 @@ class GuiMainWindow(QtWidgets.QWidget):
         super().__init__()
 
         self.root = root
-
-        self.setFixedSize(QtCore.QSize(400, 300))
-
-        self.button = QtWidgets.QPushButton("Click me!")
-        self.text = QtWidgets.QLabel("AnyWrapped v0.1",
-                                     alignment=QtCore.Qt.AlignCenter)
+        self.setFixedSize(QtCore.QSize(800, 720))
 
         self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.addWidget(self.text)
-        self.layout.addWidget(self.button)
 
+        #Titulo de la aplicacion
+        self.title_label = QtWidgets.QLabel("AnyWrapped v0.1",
+                                     alignment=QtCore.Qt.AlignCenter)
+        self.layout.addWidget(self.title_label)
+
+        #Boton de testeo
+        self.button = QtWidgets.QPushButton("Click me!")
+        self.layout.addWidget(self.button)
         self.button.clicked.connect(self.magic)
 
-        self.list_historial = QtWidgets.QListWidget()
-        self.list_historial.addItems([
-            "La mama de la mama",
-            "Scooby doo papa",
-            "Dame tu cosita"
-        ])
-        self.layout.addWidget(self.list_historial)
+        #Label de artistas mas reproducidos
+        self.artists_label = QtWidgets.QLabel("Most Played Artists",
+                                     alignment=QtCore.Qt.AlignLeft)
+        self.layout.addWidget(self.artists_label)
 
+        #Lista de artistas mas reproducidos
+        self.list_most_played_artists = QtWidgets.QListWidget()
+        self.layout.addWidget(self.list_most_played_artists)
+
+        #Label de artistas mas reproducidos
+        self.songs_label = QtWidgets.QLabel("Most Played Songs",
+                                     alignment=QtCore.Qt.AlignLeft)
+        self.layout.addWidget(self.songs_label)
+
+        #Lista de canciones mas reproducidas
+        self.list_most_played_songs = QtWidgets.QListWidget()
+        self.layout.addWidget(self.list_most_played_songs)
+
+        #Label historial
+        self.historial_label = QtWidgets.QLabel("Historial",
+                                     alignment=QtCore.Qt.AlignLeft)
+        self.layout.addWidget(self.historial_label)
+
+        #Historial
+        self.list_historial = QtWidgets.QListWidget()
+        self.layout.addWidget(self.list_historial)
+    
+    def closeEvent(self, event):
+        self.root.app_exit()
+        event.accept() # let the window close
+
+
+    #Funcion de testeo para el boton
     @QtCore.Slot()
     def magic(self):
-        self.text.setText("This doesnt wrap anything rn")
+        self.title_label.setText("This doesnt wrap anything rn")
         print("LOLOLOLOLOLOLOL")
+
+    #Agrega una cancion a la lista de canciones mas reproducidas
+    def add_most_played_songs(self, i, song):
+        self.list_most_played_songs.addItems([
+            f"{i+1}: {song[1]} (Played {song[5]} times)"
+        ])
+
+    def reset_most_played_songs(self):
+        while self.list_most_played_songs.count() != 0:
+            self.list_most_played_songs.takeItem(0)
     
+    #Agrega un artista a la lista de artista mas reproducidas
+    def add_most_played_artists(self, i, artists):
+        self.list_most_played_artists.addItems([
+            f"{i+1}: {artists[0]} (Played {artists[1]} times)"
+        ])
+
+    def reset_most_played_artists(self):
+        while self.list_most_played_artists.count() != 0:
+            self.list_most_played_artists.takeItem(0)
+
+    #Agrega una entrada al historial
     def add_historial(self, song):
         self.list_historial.addItems([
             song
         ])
+    
+    def reset_historial(self):
+        while self.list_historial.count() != 0:
+            self.list_historial.takeItem(0)
 
 
 class GuiApp():
@@ -58,11 +109,8 @@ class GuiApp():
         self.widget = GuiMainWindow(self)
         self.widget.show()
 
-        artists = self.controller.get_most_played_artists(limit=5, removeBlank=True)
-        self.set_most_played_artists(artists)
-
-        songlist = self.controller.get_most_played_songs(limit=5, removeBlank=True)
-        self.set_most_played_artists(songlist)
+        self.controller.get_stats()
+        self.controller.get_historial()
 
         sys.exit(self.app.exec())
     
@@ -70,14 +118,29 @@ class GuiApp():
         pass
 
     def set_most_played_songs(self, songlist):
+        self.widget.reset_most_played_songs()
         for i, song in enumerate(songlist):
-            self.widget.add_historial(f"{i+1}: {song[1]} (Played {song[5]} times)")
+            self.widget.add_most_played_songs(i, song)
 
     def set_most_played_artists(self, songlist):
-        pass
+        self.widget.reset_most_played_artists()
+        for i, artist in enumerate(songlist):
+            self.widget.add_most_played_artists(i, artist)
 
     def set_historial(self, histlist):
+        self.widget.reset_historial()
+        for entry in histlist:
+            dt = datetime.datetime.fromtimestamp(entry[1])
+            self.widget.add_historial(f"{dt} {entry[0][2]} - {entry[0][3]} - {entry[0][4]}")
+
+    def set_stats(self):
         pass
+
+    def set_artists(self, artists, artists_reproductions):
+        pass
+
+    def app_exit(self):
+        self.controller.app_exit()
 
 #Prototipo para luego implementar una GUI de verdad
 class CliApp():
@@ -92,7 +155,7 @@ class CliApp():
     def start(self):
         self.print("--- AIMP Wrapped v0.1 --- Running ---")
 
-        self.set_stats()
+        self.controller.get_stats()
 
         self.print("\nType HELP to get a list of commands")
 
@@ -102,12 +165,16 @@ class CliApp():
 
             if command == "hist":
                 self.controller.get_historial()
-            if command == "stats":
+            elif command == "stats":
                 self.set_stats()
-            if command == "help":
+            elif command == "artists":
+                self.controller.get_artists()
+            elif command == "help":
                 self.show_help()
-            if command == "exit":
+            elif command == "exit":
                 self.controller.app_exit()
+            else:
+                self.print("Unrecognized command. Type HELP to get a list of commands.")
 
     def print(self, msg):
         print(msg)
@@ -128,15 +195,11 @@ class CliApp():
         for entry in histlist:
             dt = datetime.datetime.fromtimestamp(entry[1])
             print(dt, entry[0][2], "-", entry[0][3], "-", entry[0][4])
-        
     
-    #Configura todos los stats
-    def set_stats(self):
-        artists = self.controller.get_most_played_artists(limit=5, removeBlank=True)
-        self.set_most_played_artists(artists)
-
-        songlist = self.controller.get_most_played_songs(limit=5, removeBlank=True)
-        self.set_most_played_songs(songlist)
+    def set_artists(self, artists, artists_reproductions):
+        self.print("ARTISTS:")
+        for i,artist in enumerate(artists):
+            self.print(f"{artist} (played {artists_reproductions[i]} times).")
 
     # Para el comando help
     def show_help(self):
@@ -144,5 +207,6 @@ class CliApp():
 COMMANDS:
 stats: show most played songs and artists.
 hist: show historial (20 most recent).
+artists: show full list of played artists and their reproductions.
 exit: closes the app.
-              ''')
+''')
