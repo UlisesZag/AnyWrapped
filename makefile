@@ -1,13 +1,13 @@
-Windows:
-	del .\AnyWrapped.exe
-	pyinstaller --onefile --paths .venv\Lib\site-packages __main__.py
-	move dist\__main__.exe AnyWrapped.exe
+windows:
+	del bin\AnyWrapped.exe
+	pyinstaller --onefile --paths .venv\Lib\site-packages anywrapped\__main__.py
+	move dist\__main__.exe bin\AnyWrapped.exe
 	rmdir dist
 
-Setup:
+setup: requirements.txt
 	python -m venv .venv
 	.venv\Scripts\activate
 	pip install -r requirements.txt
 
-VenvActivate:
+venvactivate: .venv\Scripts\activate
 	.venv\Scripts\activate

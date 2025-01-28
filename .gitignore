@@ -1,4 +1,5 @@
 __pycache__/
+anywrapped/__pycache__/
 stats.db
 AIMP.bat
 .venv/
