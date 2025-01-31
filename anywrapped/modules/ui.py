@@ -11,6 +11,7 @@ import datetime
 import tkinter as tk
 from tkinter.messagebox import showinfo
 import ttkbootstrap as ttk
+import ttkbootstrap.tableview as ttktableview
 from PIL import ImageTk, Image
 
 #Ventana principal de la aplicacion
@@ -22,7 +23,7 @@ class TkApp(ttk.Window):
         self.withdrawed = False
 
         self.title("AnyWrapped v0.1 - By AnonymousTaikoCat")
-        self.geometry("900x600")
+        self.geometry("1000x700")
         #self.resizable(False, False)
         
         self.main_frame = TkMainFrame(self)
@@ -43,6 +44,9 @@ class TkApp(ttk.Window):
     #Start: obtiene los datos y mainloop
     def start(self):
         self.update_data()
+
+        self.controller.gui_close()
+        
         self.mainloop()
     
     #Obtiene todos los datos de la UI
@@ -203,6 +207,7 @@ class TkHistoryFrame(ttk.Frame):
         self.history_labelframe.rowconfigure(0, weight=1)
         self.history_labelframe.columnconfigure(0, weight=1)
 
+        '''
         self.history_treeview = ttk.Treeview(self.history_labelframe, 
                                              columns=("date", "artist", "album", "title"),
                                              bootstyle="info")
@@ -219,15 +224,45 @@ class TkHistoryFrame(ttk.Frame):
                                                 bootstyle="info")
         self.history_treeview.configure(yscrollcommand=self.history_scrollbar.set)
         self.history_scrollbar.grid(row=0, column=1, sticky=tk.NS, padx=5, pady=5)
+        '''
+
+        coldata = [
+            "Date",
+            "Artist",
+            "Album",
+            "Title"
+        ]
+
+        self.history_tableview = ttktableview.Tableview(master=self.history_labelframe, 
+                                                        coldata=coldata, 
+                                                        rowdata=[],
+                                                        pagesize=50,
+                                                        paginated=True,
+                                                        searchable=True,
+                                                        bootstyle="info",
+                                                        autoalign=True)
+        self.history_tableview.grid(row=0, column=0, padx=5, pady=5, sticky=tk.NSEW)
+
+        self.history_scrollbar = ttk.Scrollbar(self.history_labelframe, 
+                                                orient=tk.VERTICAL, 
+                                                command=self.history_tableview.view.yview,
+                                                bootstyle="info")
+        self.history_tableview.configure(yscrollcommand=self.history_scrollbar.set)
+        self.history_scrollbar.grid(row=0, column=1, sticky=tk.NS, padx=5, pady=5)
     
     def set_historial(self, histlist):
         self.reset_historial()
         for entry in histlist:
             dt = datetime.datetime.fromtimestamp(entry[1])
-            self.history_treeview.insert('', tk.END, values=(dt, entry[0][2], entry[0][3], entry[0][4]))
+            #self.history_treeview.insert('', tk.END, values=(dt, entry[0][2], entry[0][3], entry[0][4]))
+            self.history_tableview.insert_row('end', [dt, entry[0][2], entry[0][3], entry[0][4]])
+        
+        self.history_tableview.load_table_data()
     
     def reset_historial(self):
-        self.history_treeview.delete(*self.history_treeview.get_children())
+        #self.history_treeview.delete(*self.history_treeview.get_children())
+        self.history_tableview.delete_rows(None, None)
+        pass
 
 class TkArtistsFrame(ttk.Frame):
     def __init__(self, root):
