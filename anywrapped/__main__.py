@@ -7,10 +7,11 @@ Reproductores soportados:
 AIMP
 '''
 
-import modules.aimp as aimp
-import modules.database_model as database_model
-import modules.ui as ui
-import modules.controller as controller
+import anywrapped.modules.aimp as aimp
+import anywrapped.modules.database_model as database_model
+import anywrapped.modules.ui as ui
+import anywrapped.modules.controller as controller
+import anywrapped.modules.systray as systray
 import pywintypes
 from tkinter.messagebox import showerror
 
@@ -21,14 +22,17 @@ def main():
         logger = aimp.AIMPLogger()
         dbmodel = database_model.DatabaseModel()
         gui = ui.TkApp()
+        stray = systray.SystemTrayIcon()
 
         app_controller.set_dbmodel(dbmodel)
         app_controller.set_view(gui)
         app_controller.set_logger(logger)
+        app_controller.set_systray(stray)
 
         logger.set_controller(app_controller)
         dbmodel.set_controller(app_controller)
         gui.set_controller(app_controller)
+        stray.set_controller(app_controller)
 
         app_controller.start()
     except PermissionError or pywintypes.error:

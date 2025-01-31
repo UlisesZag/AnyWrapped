@@ -1,7 +1,8 @@
 windows:
 	del bin\AnyWrapped.exe
-	pyinstaller --onefile --paths .venv\Lib\site-packages anywrapped\__main__.py
-	move dist\__main__.exe bin\AnyWrapped.exe
+	cd anywrapped
+	pyinstaller --onefile --paths .venv\Lib\site-packages --add-data assets:assets --noconsole anywrapped.py 
+	move dist\anywrapped.exe bin\AnyWrapped.exe
 	rmdir dist
 
 setup: requirements.txt

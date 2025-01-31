@@ -176,7 +176,11 @@ class DatabaseModel():
         '''
         songs = self.get_songs_entries()
         songs.sort(key=lambda tup: tup[5], reverse=True)
-        return songs[0:limit]
+
+        if limit != 0:
+            return songs[0:limit]
+        else:
+            return songs
 
     def get_most_played_artists(self, limit = 10, removeBlank = False):
         '''
@@ -196,7 +200,10 @@ class DatabaseModel():
 
         artists_reps.sort(key=lambda tup: tup[1], reverse=True)
         
-        return artists_reps[0:limit]
+        if limit != 0:
+            return artists_reps[0:limit]
+        else:
+            return artists_reps
 
     #Obtiene la tabla del historial
     def get_historial_table(self, limit = 0):
@@ -214,7 +221,10 @@ class DatabaseModel():
     def get_historial(self, limit = 0):
         hist = []
         #Obtiene la tabla, la invierte y luego la corta a limite
-        histlist = list(reversed(self.get_historial_table()))[0:limit]
+        if limit != 0:
+            histlist = list(reversed(self.get_historial_table()))[0:limit]
+        else:
+            histlist = list(reversed(self.get_historial_table()))
 
         #Cada entry tiene un: ROWID, ID de la cancion, Timestamp de vez reproducida
         for entry in histlist:

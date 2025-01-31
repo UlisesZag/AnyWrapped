@@ -28,6 +28,10 @@ class AIMPLoggerThread():
 
         #Espera a una instancia de AIMP
         while True:
+            #Request de parar?
+            if self.stop_flag:
+                break
+
             try:
                 client = pyaimp.Client()
                 break
@@ -41,7 +45,8 @@ class AIMPLoggerThread():
 
         client = self.wait_aimp()
 
-        dispatcher.send(message=f"Found: AIMP {client.get_version()[0]}", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
+        if client:
+            dispatcher.send(message=f"Found: AIMP {client.get_version()[0]}", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
 
         #Loop principal
         while True:
@@ -99,6 +104,7 @@ class AIMPLogger():
     
     def stop(self):
         dispatcher.send(signal=AIMPLOGGERTHREAD_STOP, sender=AIMPLOGGER_SENDER)
+        print("LOGGER: Stopped")
     
     def add_song_played_received(self, track_info):
         #print("AIMPLogger: ADD SONG PLAYED RECIBIDO")
