@@ -14,6 +14,7 @@ AIMPLOGGERTHREAD_PRINT_SIGNAL="aimplogger_print_signal"
 AIMPLOGGERTHREAD_ADDSONG_SIGNAL="aimplogger_addsong_signal"
 AIMPLOGGERTHREAD_STOP="aimplogger_stop"
 
+DETECTION_TRESHOLD = 10
 
 class AIMPLoggerThread():
     def __init__(self):
@@ -48,6 +49,13 @@ class AIMPLoggerThread():
         if client:
             dispatcher.send(message=f"Found: AIMP {client.get_version()[0]}", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
 
+
+        #Compara un dict track_info con otro dict old_track_info para saber si la cancion fue cambiada
+        track_info = {}
+        old_track_info = {}
+        #La cancion debe reproducirse hasta pasar el umbral de deteccion, y ahi se detectara y se sumara.
+        detection_treshold_passed = True
+
         #Loop principal
         while True:
             #Request de parar?
@@ -63,7 +71,6 @@ class AIMPLoggerThread():
             time.sleep(SLEEP_INTERVAL) #Pausa por SLEEP_INTERVAL segundos
 
             playback_state = client.get_playback_state() #Reproduciendo/Pausado/Detenido
-            track_info = {}
 
             if playback_state == pyaimp.PlayBackState.Stopped:
                 #print("No track being played")
@@ -72,16 +79,23 @@ class AIMPLoggerThread():
                 old_track_info = track_info
                 track_info = client.get_current_track_info()
 
-                #Pausado o Reproduciendo?
-                str_state = "[Paused]" if playback_state == pyaimp.PlayBackState.Paused else "[Playing]"
-
                 #Acaba de empezar?
-                just_started = client.get_player_position() <= SLEEP_INTERVAL * 1200 and playback_state == pyaimp.PlayBackState.Playing
-                song_changed = old_track_info == track_info
+                below_detection_treshold = (client.get_player_position() <= DETECTION_TRESHOLD * 1000) and (playback_state == pyaimp.PlayBackState.Playing)
+                above_detection_treshold = (client.get_player_position() > DETECTION_TRESHOLD * 1000) and (playback_state == pyaimp.PlayBackState.Playing)
+                song_changed = old_track_info != track_info
 
                 #Aca haria toda la parte del registro. 
-                if just_started or song_changed:
-                    #print("AIMPLoggerThread: ADD SONG PLAYED ENVIADO")
+                #Si la cancion cambia activa el umbral de deteccion
+                if song_changed:
+                    detection_treshold_passed = False
+
+                #Si esta bajo el umbral de deteccion lo activa (ponele que se reinicia la cancion)
+                if below_detection_treshold:
+                    detection_treshold_passed = False
+                
+                #Si el umbral esta activado y lo pasa, el umbral se desactiva, y registra la cancion sonando
+                if above_detection_treshold and not detection_treshold_passed:
+                    detection_treshold_passed = True
                     dispatcher.send(track_info=track_info, signal=AIMPLOGGER_ADDSONG_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
         
         dispatcher.send(message="AIMP Apagado", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
