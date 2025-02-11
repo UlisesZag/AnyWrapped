@@ -12,6 +12,7 @@ import anywrapped.modules.database_model as database_model
 import anywrapped.modules.ui as ui
 import anywrapped.modules.controller as controller
 import anywrapped.modules.systray as systray
+import anywrapped.modules.configfile as configfile
 import pywintypes
 from tkinter.messagebox import showerror
 
@@ -23,16 +24,20 @@ def main():
         dbmodel = database_model.DatabaseModel()
         gui = ui.TkApp()
         stray = systray.SystemTrayIcon()
+        cfgfile = configfile.ConfigFile()
 
         app_controller.set_dbmodel(dbmodel)
         app_controller.set_view(gui)
         app_controller.set_logger(logger)
         app_controller.set_systray(stray)
+        app_controller.set_configfile(cfgfile)
 
         logger.set_controller(app_controller)
         dbmodel.set_controller(app_controller)
         gui.set_controller(app_controller)
         stray.set_controller(app_controller)
+
+        dbmodel.set_configfile(cfgfile)
 
         app_controller.start()
     except PermissionError or pywintypes.error:

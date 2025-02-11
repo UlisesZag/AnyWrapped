@@ -29,13 +29,10 @@ class SystemTrayIcon():
     
     def open_gui(self):
         self.icon.stop()
-        self.controller.gui_open()
+        self.controller.ui_open()
     
     def app_exit(self):
         self.controller.app_exit()
         
     def icon_loop(self, icon):
         icon.visible = True
-    
-    def mark_current_log_line(self):
-        pass

@@ -1,5 +1,6 @@
 import sqlite3
 import time
+import os
 
 '''
 Modelo de la base de datos
@@ -8,6 +9,7 @@ Modelo de la base de datos
 class DatabaseModel():
     def __init__(self):
         self.controller = None
+        self.configfile = None
 
         self.dbcon = None
         self.dbcur = None
@@ -17,11 +19,36 @@ class DatabaseModel():
     def set_controller(self, controller):
         self.controller = controller
 
+    def set_configfile(self, cfgfile):
+        self.configfile = cfgfile
+
+    #Obtiene todas las bases de datos bajo el directorio dataases
+    def get_databases(self):
+        #Si la carpeta databases no existe la crea
+        if not os.path.isdir("databases"):
+            os.mkdir("databases")
+
+        return os.listdir("databases")
+
+    def get_database_by_index(self, index):
+        databases = self.get_databases()
+        return databases[index]
+
     #Se conecta a la base de datos
-    def connect_db(self):
-        #check_same_thread=False es una negreada para no usar semaforos y no poner hilos de mass
+    def connect_db(self, filename = None):
+        #Si la carpeta databases no existe la crea
+        if not os.path.isdir("databases"):
+            os.mkdir("databases")
+
+        #check_same_thread=False es una negreada para no usar semaforos y no poner hilos de mas
         #Lo unico que escribe es el hilo del logger 
-        self.dbcon = sqlite3.connect("stats.db", check_same_thread=False) 
+        if not filename:
+            config = self.configfile.load_config()
+            path = config["anywrapped"]["database"]
+        else:
+            path = filename
+
+        self.dbcon = sqlite3.connect("databases/"+path, check_same_thread=False) 
         self.dbcur = self.dbcon.cursor()
 
         self.create_db()
@@ -55,6 +82,18 @@ class DatabaseModel():
 
         self.dbcon.commit() 
     
+    def create_new_database(self, db):
+        self.connect_db(filename=db)
+        self.disconnect_db()
+
+    def delete_database(self, db):
+        if os.path.isfile("databases/"+db):
+            os.remove("databases/"+db)
+
+    def rename_database(self, oldname, newname):
+        if os.path.isfile("databases/"+oldname):
+            os.rename("databases/"+oldname, "databases/"+newname)
+
     #Agrega una cancion a la DB
     #Primero, agrega la cancion a la tabla Songs, o actualiza la cancion y le suma 1 a las reproducciones y actualiza el Timestamp
     #Segundo, agrega la cancion a la tabla Historial con su respectivo Timestamp

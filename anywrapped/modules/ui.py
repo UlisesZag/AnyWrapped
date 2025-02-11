@@ -12,6 +12,7 @@ import tkinter as tk
 from tkinter.messagebox import showinfo
 import ttkbootstrap as ttk
 import ttkbootstrap.tableview as ttktableview
+from tkinter import simpledialog
 from PIL import ImageTk, Image
 
 #Ventana principal de la aplicacion
@@ -20,7 +21,9 @@ class TkApp(ttk.Window):
         super().__init__(themename="vapor")
         self.controller = None
 
-        self.withdrawed = False
+        self.withdrawed = True # Arranca cerrado
+
+        self.detected_media_player = ""
 
         self.title("AnyWrapped v0.1 - By AnonymousTaikoCat")
         self.geometry("1000x700")
@@ -45,14 +48,15 @@ class TkApp(ttk.Window):
     def start(self):
         self.update_data()
 
-        self.controller.gui_close()
+        self.controller.ui_close()
         
         self.mainloop()
     
     #Obtiene todos los datos de la UI
     def update_data(self):
-        self.controller.get_stats()
-        self.controller.get_historial()
+        self.controller.ui_get_stats()
+        self.controller.ui_get_historial()
+        self.controller.ui_get_config()
 
     def print(self, msg):
         pass
@@ -65,6 +69,15 @@ class TkApp(ttk.Window):
 
     def set_historial(self, histlist):
         self.main_frame.set_historial(histlist)
+    
+    def set_config(self, config, databases):
+        self.main_frame.set_config(config, databases)
+    
+    def set_media_player(self, media_player):
+        self.detected_media_player = media_player
+        #Si no esta la ventana cerrada, actualiza el MP
+        if not self.withdrawed:
+            self.main_frame.set_media_player(self.detected_media_player)
 
     def set_stats(self):
         pass
@@ -75,7 +88,7 @@ class TkApp(ttk.Window):
     #Da un mensaje de que no se cierra completamente y cierra la ventana
     def gui_close(self):
         showinfo("AnyWrapped fun fact:", "AnyWrapped will keep running as a background task. To fully close the program, use the icon in the system tray.")
-        self.controller.gui_close()
+        self.controller.ui_close()
 
     #Cierra la ventana
     def withdraw_window(self):
@@ -87,6 +100,7 @@ class TkApp(ttk.Window):
         self.withdrawed = False
         self.after(0, self.deiconify)
         self.update_data()
+        self.main_frame.set_media_player(self.detected_media_player) #Actualiza que MP se esta ejecutando
 
     #Para toda la GUI
     def stop(self):
@@ -94,7 +108,18 @@ class TkApp(ttk.Window):
         self.quit()
         print("GUI: Stopped")
 
+    #Le manda el db seleccionado al controller para que le diga al cfgfile que lo guarde
+    def cfg_database_selected(self, db):
+        self.controller.cfg_database_selected(db)
+
+    def cfg_add_database(self, db):
+        self.controller.cfg_add_database(db)
+
+    def cfg_delete_database(self, db):
+        self.controller.cfg_delete_database(db)
     
+    def cfg_rename_database(self, oldname, newnamee):
+        self.controller.cfg_rename_database(oldname, newnamee)
 
 
 #Frame principal dentro de la ventana principal. Tendra los datos, etc
@@ -107,16 +132,19 @@ class TkMainFrame(ttk.Frame):
         self.test_label = ttk.Label(self, image=self.logo_image, anchor=tk.CENTER)
         self.test_label.grid(column=0, row=0, sticky=tk.EW)
         self.columnconfigure(0, weight=1)
+        self.rowconfigure(2, weight=3)
     
+        self.media_player_detected_label = ttk.Label(self, text="Media player detected: None")
+        self.media_player_detected_label.grid(column=0, row=1)
 
         self.main_notebook = ttk.Notebook(self, bootstyle="primary")
         self.stats_frame = TkStatsFrame(self)
         self.history_frame = TkHistoryFrame(self)
-        self.settings_frame = TkSettingsFrame(self)
+        self.settings_frame = TkSettingsFrame(self, self.root)
         self.main_notebook.add(self.stats_frame, text="Main Stats")
         self.main_notebook.add(self.history_frame, text="History")
         self.main_notebook.add(self.settings_frame, text="Settings")
-        self.main_notebook.grid(column=0, row=1, sticky=tk.NSEW, ipadx=5, ipady=5)
+        self.main_notebook.grid(column=0, row=2, sticky=tk.NSEW, ipadx=5, ipady=5)
 
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
@@ -129,6 +157,15 @@ class TkMainFrame(ttk.Frame):
 
     def set_historial(self, histlist):
         self.history_frame.set_historial(histlist)
+    
+    def set_config(self, config, databases):
+        self.settings_frame.set_config(config, databases)
+    
+    def set_media_player(self, media_player):
+        if not media_player or media_player == "":
+            self.media_player_detected_label["text"] = "Media player detected: None"
+        else:
+            self.media_player_detected_label["text"] = f"Media player detected: {media_player}"
 
 #Frame para los stats generales
 class TkStatsFrame(ttk.Frame):
@@ -233,6 +270,7 @@ class TkHistoryFrame(ttk.Frame):
             "Title"
         ]
 
+        #Tableview con todo el historial
         self.history_tableview = ttktableview.Tableview(master=self.history_labelframe, 
                                                         coldata=coldata, 
                                                         rowdata=[],
@@ -243,12 +281,15 @@ class TkHistoryFrame(ttk.Frame):
                                                         autoalign=True)
         self.history_tableview.grid(row=0, column=0, padx=5, pady=5, sticky=tk.NSEW)
 
+        #Configura la barra de scrolls
         self.history_scrollbar = ttk.Scrollbar(self.history_labelframe, 
                                                 orient=tk.VERTICAL, 
                                                 command=self.history_tableview.view.yview,
                                                 bootstyle="info")
         self.history_tableview.configure(yscrollcommand=self.history_scrollbar.set)
         self.history_scrollbar.grid(row=0, column=1, sticky=tk.NS, padx=5, pady=5)
+
+        self.history_tableview.view.unbind("<Button-3>") #Para que el usuario no borre columnas de la tabla etc
     
     def set_historial(self, histlist):
         self.reset_historial()
@@ -290,9 +331,9 @@ class TkArtistsFrame(ttk.Frame):
         self.artists_scrollbar.grid(row=0, column=1, sticky=tk.NS, padx=5, pady=5)
 
 class TkSettingsFrame(ttk.Frame):
-    def __init__(self, root):
+    def __init__(self, root, mainapp = None):
         super().__init__(root)
-
+        self.mainapp = mainapp
         self.var_database = tk.StringVar(self, "stats")
 
         self.columnconfigure(0, weight=1)
@@ -306,15 +347,44 @@ class TkSettingsFrame(ttk.Frame):
 
         self.database_combobox = ttk.Combobox(self.database_labelframe, state="readonly", values=["stats", "test1", "test3"], textvariable=self.var_database)
         self.database_combobox.grid(column=1, row=0, columnspan=2, padx=5, pady=5, sticky=tk.NSEW)
+        self.database_combobox.bind("<<ComboboxSelected>>", self.database_selected)
 
-        self.database_add_button = ttk.Button(self.database_labelframe, text="Add")
+        self.database_add_button = ttk.Button(self.database_labelframe, text="Add", command=self.add_database)
         self.database_add_button.grid(column=0, row=1, padx=5, pady=5, sticky=tk.NSEW)
 
-        self.database_rename_button = ttk.Button(self.database_labelframe, text="Rename")
+        self.database_rename_button = ttk.Button(self.database_labelframe, text="Rename", command=self.rename_database)
         self.database_rename_button.grid(column=1, row=1, padx=5, pady=5, sticky=tk.NSEW)
 
-        self.database_delete_button = ttk.Button(self.database_labelframe, text="Delete")
+        self.database_delete_button = ttk.Button(self.database_labelframe, text="Delete", command=self.delete_database)
         self.database_delete_button.grid(column=2, row=1, padx=5, pady=5, sticky=tk.NSEW)
+
+    def set_config(self, config, databases):
+        self.var_database.set(config["anywrapped"]["database"])
+        self.database_combobox["values"] = databases
+    
+    def add_database(self):
+        name = simpledialog.askstring("New database", "Name of the new database:")
+
+        if name:
+            self.mainapp.cfg_add_database(name)
+    
+    def rename_database(self):
+        newname = simpledialog.askstring("Rename database", "New name for the database:")
+        oldname = self.var_database.get()
+
+        if newname and newname != "":
+            self.mainapp.cfg_rename_database(oldname, newname)
+    
+    def delete_database(self):
+        name = self.var_database.get()
+
+        if name:
+            self.mainapp.cfg_delete_database(name)
+        
+    #Si lo selecciona le dice al mainapp (Tk) que le diga a controller que le diga a ConfigFile que guarde
+    def database_selected(self, event):
+        db = self.database_combobox.get()
+        self.mainapp.cfg_database_selected(db)
 
 #Prototipo para luego implementar una GUI de verdad
 class CliApp():
