@@ -379,7 +379,7 @@ class TkSettingsFrame(ttk.Frame):
         self.logger_selected_label = ttk.Label(self.logger_labelframe, text="Media player to detect: ")
         self.logger_selected_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
 
-        self.logger_selected_combobox = ttk.Combobox(self.logger_labelframe, values=["AIMP", "Audacious", "foobar2000", "Windows Media Player", "Winamp"], textvariable=self.var_mediaplayer)
+        self.logger_selected_combobox = ttk.Combobox(self.logger_labelframe, values=["AIMP", "Audacious", "foobar2000", "Windows Media Player", "Winamp"], textvariable=self.var_mediaplayer, state="readonly")
         self.logger_selected_combobox.grid(column=1, row=0, sticky=tk.NSEW, padx=5, pady=5)
         self.logger_selected_combobox.bind("<<ComboboxSelected>>", self.logger_selected)
 
