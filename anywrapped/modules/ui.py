@@ -90,6 +90,10 @@ class TkApp(ttk.Window):
     def set_loggers(self, loggers):
         self.main_frame.set_loggers(loggers)
 
+    #Actualiza que logger es el seleccionado
+    def set_selected_logger(self, logger):
+        self.main_frame.set_selected_logger(logger)
+
     #Da un mensaje de que no se cierra completamente y cierra la ventana
     def gui_close(self):
         showinfo("AnyWrapped fun fact:", "AnyWrapped will keep running as a background task. To fully close the program, use the icon in the system tray.")
@@ -128,6 +132,8 @@ class TkApp(ttk.Window):
 
     def cfg_logger_selected(self, logger):
         self.controller.cfg_logger_selected(logger)
+
+    
 
 
 #Frame principal dentro de la ventana principal. Tendra los datos, etc
@@ -172,6 +178,10 @@ class TkMainFrame(ttk.Frame):
     #Pasa los loggers al configframe
     def set_loggers(self, loggers):
         self.settings_frame.set_loggers(loggers)
+
+    #Actualiza que logger es el seleccionado
+    def set_selected_logger(self, logger):
+        self.settings_frame.set_selected_logger(logger)
     
     def set_media_player(self, media_player):
         if not media_player or media_player == "":
@@ -431,6 +441,10 @@ class TkSettingsFrame(ttk.Frame):
     #Finalmente setea los loggers en el combobox
     def set_loggers(self, loggers):
         self.logger_selected_combobox["values"] = loggers
+
+    #Actualiza que logger es el seleccionado
+    def set_selected_logger(self, logger):
+        self.var_mediaplayer.set(logger)
 
 #Prototipo para luego implementar una GUI de verdad
 class CliApp():

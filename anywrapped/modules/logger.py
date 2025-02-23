@@ -45,4 +45,5 @@ class LoggerSwitch:
         self.controller.print(message)
 
     def stop(self):
-        self.active_logger.stop()
+        if self.active_logger:
+            self.active_logger.stop()

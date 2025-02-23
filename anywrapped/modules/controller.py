@@ -27,7 +27,9 @@ class AppController():
         self.configfile = configfile
 
     def start(self):
-        self.logger.change_logger("AIMP")
+        config = self.configfile.load_config()
+        self.ui_set_selected_logger(config["anywrapped"]["logger"])
+        self.logger.change_logger(config["anywrapped"]["logger"])
         self.view.start()
     
     ############### DBMODEL ##########################
@@ -81,6 +83,10 @@ class AppController():
     def ui_set_media_player(self, media_player: str):
         self.view.set_media_player(media_player)
 
+    #Actualiza el logger seleccionado
+    def ui_set_selected_logger(self, logger):
+        self.view.set_selected_logger(logger)
+
     #Obtiene los artistas y las reproducciones, y lo setea en la UI
     def get_artists(self):
         artists = self.dbmodel.get_artists()
@@ -91,7 +97,7 @@ class AppController():
 
         if not self.view.is_withdrawed():
             self.view.set_artists(artists, artists_reproductions)
-    
+
     def ui_close(self):
         #Cierra la GUI
         self.view.withdraw_window()
@@ -149,6 +155,10 @@ class AppController():
 
     def cfg_logger_selected(self, logger):
         self.logger.change_logger(logger)
+        config = self.configfile.load_config()
+        config["anywrapped"]["logger"] = logger
+        self.configfile.save_config(config)
+    
 
     #Cierra toda la aplicacion
     def app_exit(self):

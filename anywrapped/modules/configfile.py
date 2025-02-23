@@ -13,9 +13,10 @@ class ConfigFile:
     def new_config(self):
         config = {
             "anywrapped": {
-                "database": "stats.db"
+                "database": "stats.db",
+                "logger": "AIMP"
             },
-            "aimp": {
+            "AIMP": {
                 "detection_treshold_seconds": 10
             }
         }
@@ -47,6 +48,9 @@ class ConfigFile:
 
     #Escribe la configuracion en un archivo config.cfg
     def save_config(self, config):
+        while self.config_rw:
+            time.sleep(0.1)
+
         self.config_rw = True #Bloquea la apertura del archivo
 
         #Guarda el archivo
