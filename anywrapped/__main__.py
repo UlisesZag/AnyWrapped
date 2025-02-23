@@ -7,7 +7,7 @@ Reproductores soportados:
 AIMP
 '''
 
-import anywrapped.modules.aimp as aimp
+import anywrapped.modules.logger as logger
 import anywrapped.modules.database_model as database_model
 import anywrapped.modules.ui as ui
 import anywrapped.modules.controller as controller
@@ -20,7 +20,7 @@ def main():
     # execute only if run as the entry point into the program
     try:
         app_controller = controller.AppController()
-        logger = aimp.AIMPLogger()
+        log = logger.LoggerSwitch()
         dbmodel = database_model.DatabaseModel()
         gui = ui.TkApp()
         stray = systray.SystemTrayIcon()
@@ -28,11 +28,11 @@ def main():
 
         app_controller.set_dbmodel(dbmodel)
         app_controller.set_view(gui)
-        app_controller.set_logger(logger)
+        app_controller.set_logger(log)
         app_controller.set_systray(stray)
         app_controller.set_configfile(cfgfile)
 
-        logger.set_controller(app_controller)
+        log.set_controller(app_controller)
         dbmodel.set_controller(app_controller)
         gui.set_controller(app_controller)
         stray.set_controller(app_controller)

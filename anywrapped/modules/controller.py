@@ -27,7 +27,7 @@ class AppController():
         self.configfile = configfile
 
     def start(self):
-        self.logger.start()
+        self.logger.change_logger("AIMP")
         self.view.start()
     
     ############### DBMODEL ##########################
@@ -45,7 +45,7 @@ class AppController():
     
     ################### UI ##############################
 
-    def print(self, msg):
+    def print(self, msg: str):
         if not self.view.is_withdrawed():
             self.view.print(msg)
     
@@ -67,12 +67,18 @@ class AppController():
             self.view.set_most_played_songs(songlist)
 
     def ui_get_config(self):
+        #Obtiene la configuracion
         config = self.configfile.load_config()
         databases = self.dbmodel.get_databases()
         self.view.set_config(config, databases)
+    
+    def ui_get_loggers(self):
+        #Obtiene los loggers disponibles
+        loggers = self.logger.get_loggers()
+        self.view.set_loggers(loggers)
 
     #De logger a UI, setea que reproductor esta ejecutandose
-    def ui_set_media_player(self, media_player):
+    def ui_set_media_player(self, media_player: str):
         self.view.set_media_player(media_player)
 
     #Obtiene los artistas y las reproducciones, y lo setea en la UI
@@ -111,11 +117,11 @@ class AppController():
         self.ui_get_config()
 
     #Crea una nueva base de datos
-    def cfg_add_database(self, db):
+    def cfg_add_database(self, db: str):
         self.dbmodel.create_new_database(db)
         self.cfg_database_selected(db)
 
-    def cfg_delete_database(self, db):
+    def cfg_delete_database(self, db: str):
         databases = self.dbmodel.get_databases()
         db_index = databases.index(db)
 
@@ -137,9 +143,12 @@ class AppController():
 
         self.cfg_database_selected(newdb)
 
-    def cfg_rename_database(self, oldname, newname):
+    def cfg_rename_database(self, oldname: str, newname: str):
         self.dbmodel.rename_database(oldname, newname)
         self.cfg_database_selected(newname)
+
+    def cfg_logger_selected(self, logger):
+        self.logger.change_logger(logger)
 
     #Cierra toda la aplicacion
     def app_exit(self):

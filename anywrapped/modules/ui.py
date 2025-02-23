@@ -57,6 +57,7 @@ class TkApp(ttk.Window):
         self.controller.ui_get_stats()
         self.controller.ui_get_historial()
         self.controller.ui_get_config()
+        self.controller.ui_get_loggers()
 
     def print(self, msg):
         pass
@@ -84,6 +85,10 @@ class TkApp(ttk.Window):
 
     def set_artists(self, artists, artists_reproductions):
         pass
+
+    #Pasa los loggers al main frame
+    def set_loggers(self, loggers):
+        self.main_frame.set_loggers(loggers)
 
     #Da un mensaje de que no se cierra completamente y cierra la ventana
     def gui_close(self):
@@ -120,6 +125,9 @@ class TkApp(ttk.Window):
     
     def cfg_rename_database(self, oldname, newnamee):
         self.controller.cfg_rename_database(oldname, newnamee)
+
+    def cfg_logger_selected(self, logger):
+        self.controller.cfg_logger_selected(logger)
 
 
 #Frame principal dentro de la ventana principal. Tendra los datos, etc
@@ -160,6 +168,10 @@ class TkMainFrame(ttk.Frame):
     
     def set_config(self, config, databases):
         self.settings_frame.set_config(config, databases)
+
+    #Pasa los loggers al configframe
+    def set_loggers(self, loggers):
+        self.settings_frame.set_loggers(loggers)
     
     def set_media_player(self, media_player):
         if not media_player or media_player == "":
@@ -334,9 +346,12 @@ class TkSettingsFrame(ttk.Frame):
     def __init__(self, root, mainapp = None):
         super().__init__(root)
         self.mainapp = mainapp
-        self.var_database = tk.StringVar(self, "stats")
+        self.var_database = tk.StringVar(self, "stats.db")
+        self.var_mediaplayer = tk.StringVar(self, "AIMP")
+        self.var_seconds_treshold = tk.IntVar(self, 10)
 
         self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
 
         self.database_labelframe = ttk.Labelframe(self, text="Database Settings")
@@ -357,6 +372,28 @@ class TkSettingsFrame(ttk.Frame):
 
         self.database_delete_button = ttk.Button(self.database_labelframe, text="Delete", command=self.delete_database)
         self.database_delete_button.grid(column=2, row=1, padx=5, pady=5, sticky=tk.NSEW)
+
+        self.logger_labelframe = ttk.Labelframe(self, text="Logger Settings")
+        self.logger_labelframe.grid(column=1, row=0, sticky=tk.NSEW, padx=5, pady=5)
+
+        self.logger_selected_label = ttk.Label(self.logger_labelframe, text="Media player to detect: ")
+        self.logger_selected_label.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+
+        self.logger_selected_combobox = ttk.Combobox(self.logger_labelframe, values=["AIMP", "Audacious", "foobar2000", "Windows Media Player", "Winamp"], textvariable=self.var_mediaplayer)
+        self.logger_selected_combobox.grid(column=1, row=0, sticky=tk.NSEW, padx=5, pady=5)
+        self.logger_selected_combobox.bind("<<ComboboxSelected>>", self.logger_selected)
+
+        self.logger_seconds_treshold_label = ttk.Label(self.logger_labelframe, text="Time in seconds to detect a song: ")
+        self.logger_seconds_treshold_label.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
+
+        self.logger_seconds_treshold_spinbox = ttk.Spinbox(self.logger_labelframe, from_=1, to=60, textvariable=self.var_seconds_treshold)
+        self.logger_seconds_treshold_spinbox.grid(column=1, row=1, sticky=tk.NSEW, padx=5, pady=5)
+
+        self.logger_restart_label = ttk.Label(self.logger_labelframe, text="Restarts the logger if the app doesnt \ndetect the selected media player.")
+        self.logger_restart_label.grid(column=0, row=2, padx=5, pady=5, sticky=tk.W)
+
+        self.logger_restart_button = ttk.Button(self.logger_labelframe, text="Restart logger", command=self.logger_selected)
+        self.logger_restart_button.grid(column=1, row=2, sticky=tk.NSEW, padx=5, pady=5)
 
     def set_config(self, config, databases):
         self.var_database.set(config["anywrapped"]["database"])
@@ -382,9 +419,18 @@ class TkSettingsFrame(ttk.Frame):
             self.mainapp.cfg_delete_database(name)
         
     #Si lo selecciona le dice al mainapp (Tk) que le diga a controller que le diga a ConfigFile que guarde
-    def database_selected(self, event):
+    def database_selected(self, event=None):
         db = self.database_combobox.get()
         self.mainapp.cfg_database_selected(db)
+
+    #Selecciona el logger
+    def logger_selected(self, event=None):
+        logger = self.var_mediaplayer.get()
+        self.mainapp.cfg_logger_selected(logger)
+
+    #Finalmente setea los loggers en el combobox
+    def set_loggers(self, loggers):
+        self.logger_selected_combobox["values"] = loggers
 
 #Prototipo para luego implementar una GUI de verdad
 class CliApp():

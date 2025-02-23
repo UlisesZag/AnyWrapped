@@ -26,9 +26,6 @@ class AIMPLoggerThread():
 
     def logger_loop(self):
         while True:
-            if self.stop_flag:
-                break
-
             #Busca una instancia de AIMP
             dispatcher.send(message="Searching AIMP instance...", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
 
@@ -40,13 +37,22 @@ class AIMPLoggerThread():
             else:
                 break
 
+            if self.stop_flag:
+                break
+
             #Loggea AIMP
             self.aimp_loop_thread(client)
 
-            dispatcher.send(message="AIMP Apagado", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
+            if self.stop_flag:
+                break
+
+            #dispatcher.send(message="AIMP Apagado", signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
+            #Si la app quiere mandar un mensaje de dispatcher mientras el logger se cierra la app se congela?
+            #Mientras se cierra el logger en la funcion stop llama a la funcion aimp_detected para no usar el dispatcher 
             dispatcher.send(media_player = "", signal=AIMPLOGGER_AIMPDETECTED, sender=AIMPLOGGERTHREAD_SENDER)
+
             #Cuando el AIMP se apague lo vuelve a buscar
-            
+        
 
     #Funcion que espera una instancia de AIMP y devuelve el cliente
     def wait_aimp(self):
@@ -115,14 +121,14 @@ class AIMPLoggerThread():
                     detection_treshold_passed = True
                     dispatcher.send(track_info=track_info, signal=AIMPLOGGER_ADDSONG_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
         
-        
-    
     #
     def on_stop_request(self):
         self.stop_flag = True
 
 class AIMPLogger():
-    def __init__(self):
+    def __init__(self, controller = None):
+        self.controller = controller
+        self.started = False
         dispatcher.connect(self.add_song_played_received, signal=AIMPLOGGER_ADDSONG_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
         dispatcher.connect(self.print_received, signal=AIMPLOGGER_PRINT_SIGNAL, sender=AIMPLOGGERTHREAD_SENDER)
         dispatcher.connect(self.aimp_detected, signal=AIMPLOGGER_AIMPDETECTED, sender=AIMPLOGGERTHREAD_SENDER)
@@ -131,12 +137,21 @@ class AIMPLogger():
         self.controller = controller
 
     def start(self):
-        self.thread = threading.Thread(target=AIMPLoggerThread)
-        self.thread.start()
+        if not self.started:
+            self.started = True
+            self.thread = threading.Thread(target=AIMPLoggerThread)
+            self.thread.start()
+            print("AIMPLogger: Started.")
     
     def stop(self):
-        dispatcher.send(signal=AIMPLOGGERTHREAD_STOP, sender=AIMPLOGGER_SENDER)
-        print("LOGGER: Stopped")
+        if self.started:
+            self.started = False
+            dispatcher.send(signal=AIMPLOGGERTHREAD_STOP, sender=AIMPLOGGER_SENDER)
+            self.aimp_detected("") #Pone el reproductor detectado en None
+            print("AIMPLogger: Stopped.")
+
+    def is_thread_alive(self):
+        return self.thread.is_alive()
     
     def add_song_played_received(self, track_info):
         #print("AIMPLogger: ADD SONG PLAYED RECIBIDO")
@@ -145,6 +160,5 @@ class AIMPLogger():
     def aimp_detected(self, media_player):
         self.controller.ui_set_media_player(media_player)
         
-
     def print_received(self, message):
         self.controller.print(message)
