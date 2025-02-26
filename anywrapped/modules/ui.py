@@ -221,12 +221,13 @@ class TkStatsFrame(ttk.Frame):
         self.most_played_songs_labelframe.rowconfigure(0, weight=1)
 
         self.most_played_songs_treeview = ttk.Treeview(self.most_played_songs_labelframe,
-                                                         columns=("artist", "album", "title", "reproductions"),
+                                                         columns=("artist", "album", "title", "genre", "reproductions"),
                                                          bootstyle="info")
         self.most_played_songs_treeview["show"] = "headings" #Para que no muestre la primera columna vacia
         self.most_played_songs_treeview.heading("artist", text="Artist")
         self.most_played_songs_treeview.heading("album", text="Album")
         self.most_played_songs_treeview.heading("title", text="Title")
+        self.most_played_songs_treeview.heading("genre", text="Genre")
         self.most_played_songs_treeview.heading("reproductions", text="Reproductions")
         self.most_played_songs_treeview.grid(row=0, column=0, sticky=tk.NSEW, padx=5, pady=5)
 
@@ -250,7 +251,7 @@ class TkStatsFrame(ttk.Frame):
         self.reset_most_played_songs()
 
         for song in songlist:
-            self.most_played_songs_treeview.insert('', tk.END, values=(song[2], song[3], song[4], f"Played {song[5]} times."))
+            self.most_played_songs_treeview.insert('', tk.END, values=(song["artist"], song["album"], song["title"], song["genre"], f"Played {song["times_listened"]} times."))
 
     def reset_most_played_songs(self):
         self.most_played_songs_treeview.delete(*self.most_played_songs_treeview.get_children())
@@ -289,7 +290,8 @@ class TkHistoryFrame(ttk.Frame):
             "Date",
             "Artist",
             "Album",
-            "Title"
+            "Title",
+            "Genre"
         ]
 
         #Tableview con todo el historial
@@ -318,7 +320,7 @@ class TkHistoryFrame(ttk.Frame):
         for entry in histlist:
             dt = datetime.datetime.fromtimestamp(entry[1])
             #self.history_treeview.insert('', tk.END, values=(dt, entry[0][2], entry[0][3], entry[0][4]))
-            self.history_tableview.insert_row('end', [dt, entry[0][2], entry[0][3], entry[0][4]])
+            self.history_tableview.insert_row('end', [dt, entry[0]["artist"], entry[0]["album"], entry[0]["title"], entry[0]["genre"]])
         
         self.history_tableview.load_table_data()
     

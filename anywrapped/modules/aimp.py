@@ -155,7 +155,11 @@ class AIMPLogger():
     
     def add_song_played_received(self, track_info):
         #print("AIMPLogger: ADD SONG PLAYED RECIBIDO")
-        self.controller.add_song_played(track_info["title"],track_info["album"],track_info["artist"])
+        self.controller.add_song_played({
+            "title": track_info["title"],
+            "album": track_info["album"],
+            "artist": track_info["artist"],
+            "genre": track_info["genre"]})
 
     def aimp_detected(self, media_player):
         self.controller.ui_set_media_player(media_player)

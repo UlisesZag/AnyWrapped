@@ -35,8 +35,8 @@ class LoggerSwitch:
     
     #Funciones que se las pasa a controller
     
-    def add_song_played(self, title, album, artist):
-        self.controller.add_song_played(title, album, artist)
+    def add_song_played(self, songdict):
+        self.controller.add_song_played(songdict)
 
     def ui_set_media_player(self, media_player):
         self.controller.ui_set_media_player(media_player)

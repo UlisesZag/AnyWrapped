@@ -6,6 +6,20 @@ import os
 Modelo de la base de datos
 '''
 
+#Convierte de una lista del formato de la db a un diccionario
+def songlist_to_dict(song):
+    return {
+            "id": song[0],
+            "song": song[1],
+            "artist": song[2],
+            "album": song[3],
+            "title": song[4],
+            "times_listened": song[5],
+            "last_time_listened": song[6],
+            "genre": song[7] if song[7] != None else ""
+        }
+
+
 class DatabaseModel():
     def __init__(self):
         self.controller = None
@@ -68,7 +82,8 @@ class DatabaseModel():
                            Album varchar(255) NOT NULL, 
                            Title varchar(255) NOT NULL, 
                            TimesListened int NOT NULL,
-                           LastTimePlayed int 
+                           LastTimePlayed int,
+                           Genre varchar(255)
                            );
                            ''')
         
@@ -78,6 +93,16 @@ class DatabaseModel():
                             SongID INT NOT NULL,
                             Timestamp INT NOT NULL
                             );
+                            ''')
+        
+        #Actualiza las columnas de las tablas de versiones anteriores
+        columns = self.dbcur.execute("PRAGMA table_info(Songs)").fetchall()
+        columns = [item[1] for item in columns]
+
+        if not "Genre" in columns:
+            print("DBMODEL: Added column Genre as it wasnt in the table Songs.")
+            self.dbcur.execute( '''
+                            ALTER TABLE Songs ADD COLUMN Genre varchar(255);
                             ''')
 
         self.dbcon.commit() 
@@ -97,13 +122,15 @@ class DatabaseModel():
     #Agrega una cancion a la DB
     #Primero, agrega la cancion a la tabla Songs, o actualiza la cancion y le suma 1 a las reproducciones y actualiza el Timestamp
     #Segundo, agrega la cancion a la tabla Historial con su respectivo Timestamp
-    def add_song_played(self, song, album, artist):
+    def add_song_played(self, songdict):
         #print("DBMODEL: ADDING PLAYED SONG . . .")
         self.connect_db()
+
         #Le saca las comillas para que SQL no se confunda
-        song = song.replace("\"", "").replace("\'", "")
-        album = album.replace("\"", "").replace("\'", "")
-        artist = artist.replace("\"", "").replace("\'", "")
+        song = songdict["title"].replace("\"", "").replace("\'", "")
+        album = songdict["album"].replace("\"", "").replace("\'", "")
+        artist = songdict["artist"].replace("\"", "").replace("\'", "")
+        genre = songdict["genre"].replace("\"", "").replace("\'", "")
 
         #Obtiene los datos de cancion
         song_entry = self.dbcur.execute(f'''
@@ -113,8 +140,8 @@ class DatabaseModel():
         #Si no existe crea la entrada de cancion
         if song_entry.fetchone() == None:
             self.dbcur.execute(f'''
-                                INSERT INTO Songs (Song, Artist, Album, Title, TimesListened, LastTimePlayed) 
-                               VALUES ("{artist} - {album} - {song}", "{artist}", "{album}", "{song}", 1, "{ int(time.time()) }");
+                                INSERT INTO Songs (Song, Artist, Album, Title, TimesListened, LastTimePlayed, Genre) 
+                               VALUES ("{artist} - {album} - {song}", "{artist}", "{album}", "{song}", 1, "{ int(time.time()) }", "{genre}");
                                 ''')
         else:
             #Si existe, obtiene la cantidad de reproducciones y le suma uno
@@ -151,7 +178,8 @@ class DatabaseModel():
                                   ''').fetchone()
         self.disconnect_db()
 
-        return song
+        return songlist_to_dict(song)
+
 
     #Devuelve todas las canciones en la DB
     def get_songs_entries(self):
@@ -161,14 +189,19 @@ class DatabaseModel():
                            ''')
         entries = self.dbcur.fetchall()
         self.disconnect_db()
-        return entries
+
+        songs = []
+        for entry in entries:
+            songs.append(songlist_to_dict(entry))
+
+        return songs
     
     #Devuelve todos los artistas en la DB
     def get_artists(self):
         artists = []
         for entry in self.get_songs_entries():
-            if not entry[2] in artists:
-                artists.append(entry[2])
+            if not entry["artist"] in artists:
+                artists.append(entry["artist"])
 
         return artists
 
@@ -176,7 +209,7 @@ class DatabaseModel():
     def get_total_reproductions(self):
         total_reps = 0
         for entry in self.get_songs_entries():
-            total_reps += entry[5]
+            total_reps += entry["times_listened"]
         
         return total_reps
 
@@ -184,8 +217,8 @@ class DatabaseModel():
     def get_artist_reproductions(self, artist):
         reps = 0
         for entry in self.get_songs_entries():
-            if entry[2] == artist:
-                reps += entry[5]
+            if entry["artist"] == artist:
+                reps += entry["times_listened"]
         
         return reps
     
@@ -193,8 +226,8 @@ class DatabaseModel():
     def get_album_reproductions(self, artist, album):
         reps = 0
         for entry in self.get_songs_entries():
-            if entry[2] == artist and entry[3] == album:
-                reps += entry[5]
+            if entry["artist"] == artist and entry["album"] == album:
+                reps += entry["times_listened"]
         
         return reps
     
@@ -202,8 +235,8 @@ class DatabaseModel():
     def get_song_reproductions(self, artist, album, title):
         reps = 0
         for entry in self.get_songs_entries():
-            if entry[2] == artist and entry[3] == album and entry[4] == title:
-                reps += entry[5]
+            if entry["artist"] == artist and entry["album"] == album and entry["title"] == title:
+                reps += entry["times_listened"]
         
         return reps
     
@@ -214,7 +247,7 @@ class DatabaseModel():
         removeBlank: saca las canciones sin nombre ("") de la lista
         '''
         songs = self.get_songs_entries()
-        songs.sort(key=lambda tup: tup[5], reverse=True)
+        songs.sort(key=lambda tup: tup["times_listened"], reverse=True)
 
         if limit != 0:
             return songs[0:limit]

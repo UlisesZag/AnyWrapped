@@ -39,8 +39,8 @@ class AppController():
     def get_most_played_songs(self, limit=10, removeBlank=False):
         return self.dbmodel.get_most_played_songs(limit, removeBlank)
 
-    def add_song_played(self, song, album, artist):
-        self.dbmodel.add_song_played(song, album, artist)
+    def add_song_played(self, songdict):
+        self.dbmodel.add_song_played(songdict)
 
         self.ui_get_historial() #Actualiza el historial en la GUI
         self.ui_get_stats() #Actualiza los stats en la GUI
